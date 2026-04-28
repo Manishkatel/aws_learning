@@ -128,7 +128,9 @@ export async function uploadClubLogo(clubId: string, file: File): Promise<{ logo
 
 export interface ClubMember {
   id: string;
+  user?: string;
   user_id: string;
+  club?: string;
   club_id: string;
   user_name?: string;
   user_email?: string;
@@ -152,9 +154,9 @@ export async function getClubMembers(clubId?: string): Promise<ClubMember[]> {
   
   // Handle paginated response from Django REST Framework
   if (Array.isArray(response)) {
-    return response;
+    return response.map(withFrontendIds);
   } else if (response && typeof response === 'object' && Array.isArray(response.results)) {
-    return response.results;
+    return response.results.map(withFrontendIds);
   } else {
     return [];
   }
@@ -164,7 +166,8 @@ export async function getClubMembers(clubId?: string): Promise<ClubMember[]> {
  * Add club member
  */
 export async function addClubMember(data: CreateClubMemberData): Promise<ClubMember> {
-  return apiPost<ClubMember>(API_ENDPOINTS.CLUB_MEMBERS, data);
+  const member = await apiPost<ClubMember>(API_ENDPOINTS.CLUB_MEMBERS, toDjangoRelationPayload(data));
+  return withFrontendIds(member);
 }
 
 /**
@@ -178,9 +181,11 @@ export async function removeClubMember(memberId: string): Promise<void> {
 
 export interface BoardMember {
   id: string;
+  club?: string;
   club_id: string;
   name: string;
   position?: string;
+  email?: string;
   photo_url?: string;
   year_in_college?: string;
   joined_date?: string;
@@ -210,9 +215,9 @@ export async function getBoardMembers(clubId?: string): Promise<BoardMember[]> {
   
   // Handle paginated response from Django REST Framework
   if (Array.isArray(response)) {
-    return response;
+    return response.map(withFrontendIds);
   } else if (response && typeof response === 'object' && Array.isArray(response.results)) {
-    return response.results;
+    return response.results.map(withFrontendIds);
   } else {
     return [];
   }
@@ -222,14 +227,16 @@ export async function getBoardMembers(clubId?: string): Promise<BoardMember[]> {
  * Add board member
  */
 export async function addBoardMember(data: CreateBoardMemberData): Promise<BoardMember> {
-  return apiPost<BoardMember>(API_ENDPOINTS.BOARD_MEMBERS, data);
+  const member = await apiPost<BoardMember>(API_ENDPOINTS.BOARD_MEMBERS, toDjangoRelationPayload(data));
+  return withFrontendIds(member);
 }
 
 /**
  * Update board member
  */
 export async function updateBoardMember(id: string, data: Partial<CreateBoardMemberData>): Promise<BoardMember> {
-  return apiPut<BoardMember>(API_ENDPOINTS.BOARD_MEMBER_DETAIL(id), data);
+  const member = await apiPut<BoardMember>(API_ENDPOINTS.BOARD_MEMBER_DETAIL(id), toDjangoRelationPayload(data));
+  return withFrontendIds(member);
 }
 
 /**
@@ -243,6 +250,7 @@ export async function removeBoardMember(id: string): Promise<void> {
 
 export interface Achievement {
   id: string;
+  club?: string;
   club_id: string;
   title: string;
   description?: string;
@@ -258,6 +266,27 @@ export interface CreateAchievementData {
   date_achieved?: string;
 }
 
+function toDjangoRelationPayload<T extends { club_id?: string; user_id?: string }>(data: T) {
+  const payload: any = { ...data };
+  if (payload.club_id) {
+    payload.club = payload.club_id;
+    delete payload.club_id;
+  }
+  if (payload.user_id) {
+    payload.user = payload.user_id;
+    delete payload.user_id;
+  }
+  return payload;
+}
+
+function withFrontendIds<T extends { club?: string | number; user?: string | number; club_id?: string; user_id?: string }>(item: T): T {
+  return {
+    ...item,
+    club_id: item.club_id ?? (item.club != null ? String(item.club) : ''),
+    user_id: item.user_id ?? (item.user != null ? String(item.user) : ''),
+  };
+}
+
 /**
  * Get achievements (optionally filtered by club_id)
  */
@@ -270,9 +299,9 @@ export async function getAchievements(clubId?: string): Promise<Achievement[]> {
   
   // Handle paginated response from Django REST Framework
   if (Array.isArray(response)) {
-    return response;
+    return response.map(withFrontendIds);
   } else if (response && typeof response === 'object' && Array.isArray(response.results)) {
-    return response.results;
+    return response.results.map(withFrontendIds);
   } else {
     return [];
   }
@@ -282,14 +311,16 @@ export async function getAchievements(clubId?: string): Promise<Achievement[]> {
  * Add achievement
  */
 export async function addAchievement(data: CreateAchievementData): Promise<Achievement> {
-  return apiPost<Achievement>(API_ENDPOINTS.ACHIEVEMENTS, data);
+  const achievement = await apiPost<Achievement>(API_ENDPOINTS.ACHIEVEMENTS, toDjangoRelationPayload(data));
+  return withFrontendIds(achievement);
 }
 
 /**
  * Update achievement
  */
 export async function updateAchievement(id: string, data: Partial<CreateAchievementData>): Promise<Achievement> {
-  return apiPut<Achievement>(API_ENDPOINTS.ACHIEVEMENT_DETAIL(id), data);
+  const achievement = await apiPut<Achievement>(API_ENDPOINTS.ACHIEVEMENT_DETAIL(id), toDjangoRelationPayload(data));
+  return withFrontendIds(achievement);
 }
 
 /**
@@ -327,7 +358,7 @@ export async function getClubApplications(): Promise<ClubApplication[]> {
  * Submit club application
  */
 export async function submitClubApplication(data: CreateClubApplicationData): Promise<ClubApplication> {
-  return apiPost<ClubApplication>(API_ENDPOINTS.CLUB_APPLICATIONS, data);
+  return apiPost<ClubApplication>(API_ENDPOINTS.CLUB_APPLICATIONS, toDjangoRelationPayload(data));
 }
 
 /**

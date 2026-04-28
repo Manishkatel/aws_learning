@@ -8,14 +8,29 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { getClub, updateClub } from "@/services/django-clubs";
+import {
+  addAchievement,
+  addBoardMember,
+  deleteAchievement,
+  getAchievements,
+  getBoardMembers,
+  getClub,
+  removeBoardMember,
+  updateAchievement,
+  updateBoardMember,
+  updateClub,
+} from "@/services/django-clubs";
 import { isAuthenticated, getCurrentUser } from "@/services/django-auth";
+import { BoardMemberForm, BoardMember } from "@/components/clubs/BoardMemberForm";
+import { AchievementForm, Achievement } from "@/components/clubs/AchievementForm";
 
 const ClubEdit = () => {
-  const { id: clubId } = useParams<{ id: string }>();
+  const { clubId } = useParams<{ clubId: string }>();
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [initialBoardMemberIds, setInitialBoardMemberIds] = useState<string[]>([]);
+  const [initialAchievementIds, setInitialAchievementIds] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -25,6 +40,8 @@ const ClubEdit = () => {
     club_type: "",
     custom_type: ""
   });
+  const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -50,7 +67,7 @@ const ClubEdit = () => {
       const clubData = await getClub(clubId);
       
       // Check if user is the owner
-      if (currentUser?.id !== clubData.owner_id) {
+      if (String(currentUser?.id) !== String(clubData.owner_id)) {
         toast({
           title: "Access Denied",
           description: "You don't have permission to edit this club.",
@@ -69,6 +86,29 @@ const ClubEdit = () => {
         club_type: clubData.club_type || "",
         custom_type: clubData.custom_type || ""
       });
+
+      const [boardMembersData, achievementsData] = await Promise.all([
+        getBoardMembers(clubId),
+        getAchievements(clubId),
+      ]);
+
+      setBoardMembers(boardMembersData.map((member) => ({
+        id: String(member.id),
+        name: member.name || "",
+        position: member.position || "",
+        email: member.email || "",
+        year_in_college: member.year_in_college || "",
+        joined_date: member.joined_date || new Date().toISOString().split('T')[0],
+        photo: null,
+      })));
+      setAchievements(achievementsData.map((achievement) => ({
+        id: String(achievement.id),
+        title: achievement.title || "",
+        description: achievement.description || "",
+        date_achieved: achievement.date_achieved || "",
+      })));
+      setInitialBoardMemberIds(boardMembersData.map((member) => String(member.id)));
+      setInitialAchievementIds(achievementsData.map((achievement) => String(achievement.id)));
     } catch (error: any) {
       toast({
         title: "Error",
@@ -86,6 +126,28 @@ const ClubEdit = () => {
     setLoading(true);
     
     try {
+      const invalidMembers = boardMembers.filter(member => !member.name.trim());
+      if (invalidMembers.length > 0) {
+        toast({
+          title: "Invalid Board Members",
+          description: "Please fill in the name for all board members or remove empty ones.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const invalidAchievements = achievements.filter(achievement => !achievement.title.trim());
+      if (invalidAchievements.length > 0) {
+        toast({
+          title: "Invalid Achievements",
+          description: "Please fill in the title for all achievements or remove empty ones.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       const updateData = {
         name: formData.name,
         description: formData.description,
@@ -98,9 +160,43 @@ const ClubEdit = () => {
 
       await updateClub(clubId, updateData);
 
+      const currentBoardMemberIds = new Set(boardMembers.map(member => member.id));
+      const removedBoardMemberIds = initialBoardMemberIds.filter(id => !currentBoardMemberIds.has(id));
+      await Promise.all(removedBoardMemberIds.map(id => removeBoardMember(id)));
+      await Promise.all(boardMembers.map(member => {
+        const payload = {
+          club_id: clubId,
+          name: member.name.trim(),
+          position: member.position.trim() || undefined,
+          email: member.email.trim() || undefined,
+          year_in_college: member.year_in_college || undefined,
+          joined_date: member.joined_date || new Date().toISOString().split('T')[0],
+        };
+
+        return initialBoardMemberIds.includes(member.id)
+          ? updateBoardMember(member.id, payload)
+          : addBoardMember(payload);
+      }));
+
+      const currentAchievementIds = new Set(achievements.map(achievement => achievement.id));
+      const removedAchievementIds = initialAchievementIds.filter(id => !currentAchievementIds.has(id));
+      await Promise.all(removedAchievementIds.map(id => deleteAchievement(id)));
+      await Promise.all(achievements.map(achievement => {
+        const payload = {
+          club_id: clubId,
+          title: achievement.title.trim(),
+          description: achievement.description.trim() || undefined,
+          date_achieved: achievement.date_achieved || undefined,
+        };
+
+        return initialAchievementIds.includes(achievement.id)
+          ? updateAchievement(achievement.id, payload)
+          : addAchievement(payload);
+      }));
+
       toast({
         title: "Success!",
-        description: "Club updated successfully"
+        description: "Club, board members, and achievements updated successfully"
       });
       
       navigate(`/club/${clubId}`);
@@ -133,7 +229,7 @@ const ClubEdit = () => {
 
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto pt-8 pb-16">
+      <div className="max-w-4xl mx-auto pt-8 pb-16">
         <Card>
           <CardHeader>
             <CardTitle>Edit Club</CardTitle>
@@ -227,6 +323,16 @@ const ClubEdit = () => {
                   placeholder="https://yourclub.com"
                 />
               </div>
+
+              <BoardMemberForm
+                boardMembers={boardMembers}
+                setBoardMembers={setBoardMembers}
+              />
+
+              <AchievementForm
+                achievements={achievements}
+                setAchievements={setAchievements}
+              />
 
               <div className="flex gap-4">
                 <Button type="button" variant="outline" onClick={() => navigate(`/club/${clubId}`)} className="flex-1">

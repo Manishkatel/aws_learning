@@ -127,7 +127,7 @@ const ClubProfile = () => {
       setClub(clubData);
       
       const currentUser = getCurrentUser();
-      setIsOwner(currentUser?.id === clubData.owner_id);
+      setIsOwner(String(currentUser?.id) === String(clubData.owner_id));
 
       // Fetch related data in parallel - don't fail if some fail
       try {
