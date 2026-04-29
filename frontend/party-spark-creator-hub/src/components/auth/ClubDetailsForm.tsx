@@ -69,6 +69,8 @@ export const ClubDetailsForm = ({
             <ProfilePictureUpload 
               onImageChange={setClubLogo}
               fullName={clubName || "Club"}
+              label="Club Logo"
+              buttonLabel="Upload Club Logo"
             />
           </div>
           

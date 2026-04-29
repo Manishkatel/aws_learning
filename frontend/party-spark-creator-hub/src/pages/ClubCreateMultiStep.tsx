@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ArrowRight, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { isAuthenticated, getCurrentUser, getUserProfile } from "@/services/django-auth";
-import { createClub, uploadClubLogo, addBoardMember, addAchievement } from "@/services/django-clubs";
+import { createClub, uploadClubLogo, addBoardMember, uploadBoardMemberPhoto, addAchievement } from "@/services/django-clubs";
 import { ClubDetailsForm } from "@/components/auth/ClubDetailsForm";
 import { BoardMemberForm, BoardMember } from "@/components/clubs/BoardMemberForm";
 import { AchievementForm, Achievement } from "@/components/clubs/AchievementForm";
@@ -202,16 +202,20 @@ const ClubCreateMultiStep = () => {
       if (boardMembers.length > 0 && clubData.id) {
         try {
           await Promise.all(
-            boardMembers.map(member =>
-              addBoardMember({
+            boardMembers.map(async (member) => {
+              const createdMember = await addBoardMember({
                 club_id: clubData.id,
                 name: member.name,
                 position: member.position || undefined,
                 email: member.email || undefined,
                 year_in_college: member.year_in_college || undefined,
                 joined_date: member.joined_date || new Date().toISOString().split('T')[0],
-              })
-            )
+              });
+
+              if (member.photo) {
+                await uploadBoardMemberPhoto(createdMember.id, member.photo);
+              }
+            })
           );
         } catch (err) {
           console.error("Board members creation failed:", err);

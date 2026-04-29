@@ -100,7 +100,7 @@ const ClubsSection = () => {
         id: club.id,
         name: club.name,
         description: club.description || '',
-        logo_url: club.logo ? `${DJANGO_API_URL}${club.logo}` : '',
+        logo_url: getLogoUrl(club.logo_url || club.logo),
         contact_email: club.contact_email,
         contact_phone: club.contact_phone || '',
         website: club.website || '',
@@ -119,6 +119,12 @@ const ClubsSection = () => {
       setLoading(false);
     }
   };
+
+  const getLogoUrl = (logo?: string) => {
+    if (!logo) return '';
+    return logo.startsWith('http') ? logo : `${DJANGO_API_URL}${logo}`;
+  };
+
   const getCategoryColor = (category: string) => {
     const colors = {
       'Technology': 'bg-blue-100 text-blue-800',

@@ -52,7 +52,7 @@ class BoardMember(models.Model):
     position = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
     year_in_college = models.CharField(max_length=50, null=True, blank=True)
-    photo_url = models.URLField(null=True, blank=True)
+    photo_url = models.ImageField(upload_to='board_member_photos/', null=True, blank=True)
     joined_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

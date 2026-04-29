@@ -19,10 +19,14 @@ import {
   updateAchievement,
   updateBoardMember,
   updateClub,
+  uploadBoardMemberPhoto,
+  uploadClubLogo,
 } from "@/services/django-clubs";
 import { isAuthenticated, getCurrentUser } from "@/services/django-auth";
 import { BoardMemberForm, BoardMember } from "@/components/clubs/BoardMemberForm";
 import { AchievementForm, Achievement } from "@/components/clubs/AchievementForm";
+import { ProfilePictureUpload } from "@/components/auth/ProfilePictureUpload";
+import { DJANGO_API_URL } from "@/services/django-api";
 
 const ClubEdit = () => {
   const { clubId } = useParams<{ clubId: string }>();
@@ -31,6 +35,8 @@ const ClubEdit = () => {
   const [loading, setLoading] = useState(false);
   const [initialBoardMemberIds, setInitialBoardMemberIds] = useState<string[]>([]);
   const [initialAchievementIds, setInitialAchievementIds] = useState<string[]>([]);
+  const [clubLogo, setClubLogo] = useState<File | null>(null);
+  const [existingClubLogoUrl, setExistingClubLogoUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -86,6 +92,12 @@ const ClubEdit = () => {
         club_type: clubData.club_type || "",
         custom_type: clubData.custom_type || ""
       });
+      const logoUrl = clubData.logo_url || clubData.logo;
+      setExistingClubLogoUrl(
+        logoUrl
+          ? logoUrl.startsWith('http') ? logoUrl : `${DJANGO_API_URL}${logoUrl}`
+          : null
+      );
 
       const [boardMembersData, achievementsData] = await Promise.all([
         getBoardMembers(clubId),
@@ -159,11 +171,14 @@ const ClubEdit = () => {
       };
 
       await updateClub(clubId, updateData);
+      if (clubLogo) {
+        await uploadClubLogo(clubId, clubLogo);
+      }
 
       const currentBoardMemberIds = new Set(boardMembers.map(member => member.id));
       const removedBoardMemberIds = initialBoardMemberIds.filter(id => !currentBoardMemberIds.has(id));
       await Promise.all(removedBoardMemberIds.map(id => removeBoardMember(id)));
-      await Promise.all(boardMembers.map(member => {
+      await Promise.all(boardMembers.map(async (member) => {
         const payload = {
           club_id: clubId,
           name: member.name.trim(),
@@ -173,9 +188,14 @@ const ClubEdit = () => {
           joined_date: member.joined_date || new Date().toISOString().split('T')[0],
         };
 
-        return initialBoardMemberIds.includes(member.id)
+        const savedMember = initialBoardMemberIds.includes(member.id)
           ? updateBoardMember(member.id, payload)
           : addBoardMember(payload);
+
+        const boardMemberData = await savedMember;
+        if (member.photo) {
+          await uploadBoardMemberPhoto(boardMemberData.id, member.photo);
+        }
       }));
 
       const currentAchievementIds = new Set(achievements.map(achievement => achievement.id));
@@ -239,6 +259,17 @@ const ClubEdit = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label>Club Logo</Label>
+                <ProfilePictureUpload
+                  onImageChange={setClubLogo}
+                  fullName={formData.name || "Club"}
+                  initialImageUrl={existingClubLogoUrl}
+                  label="Club Logo"
+                  buttonLabel="Upload Club Logo"
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="name">Club Name *</Label>
                 <Input

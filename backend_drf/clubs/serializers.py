@@ -41,6 +41,8 @@ class ClubMemberSerializer(serializers.ModelSerializer):
 
 class BoardMemberSerializer(serializers.ModelSerializer):
     """Board member serializer"""
+    photo_url = serializers.SerializerMethodField()
+
     class Meta:
         model = BoardMember
         fields = [
@@ -49,6 +51,14 @@ class BoardMemberSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_photo_url(self, obj):
+        if obj.photo_url:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.photo_url.url)
+            return obj.photo_url.url
+        return None
 
 
 class AchievementSerializer(serializers.ModelSerializer):

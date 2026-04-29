@@ -54,7 +54,7 @@ class ClubViewSet(viewsets.ModelViewSet):
         # Return data directly (not paginated) to ensure frontend gets array
         return Response(serializer.data)
     
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated], url_path='upload-logo')
     def upload_logo(self, request, pk=None):
         """Upload club logo"""
         club = self.get_object()
@@ -90,6 +90,17 @@ class BoardMemberViewSet(viewsets.ModelViewSet):
         if club_id:
             return self.queryset.filter(club_id=club_id)
         return self.queryset
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def upload_photo(self, request, pk=None):
+        """Upload board member photo"""
+        board_member = self.get_object()
+        if 'photo' in request.FILES:
+            board_member.photo_url = request.FILES['photo']
+            board_member.save()
+            serializer = self.get_serializer(board_member)
+            return Response({'photo_url': serializer.data.get('photo_url')}, status=status.HTTP_200_OK)
+        return Response({'detail': 'No file provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AchievementViewSet(viewsets.ModelViewSet):

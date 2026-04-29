@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, MapPin, Globe, Mail, Phone, Clock, Bell, Edit, Trash2 } from "lucide-react";
+import { Calendar, Users, MapPin, Globe, Mail, Phone, Clock, Bell, Edit, Trash2, Tag } from "lucide-react";
 import ClubApplicationForm from "@/components/clubs/ClubApplicationForm";
 import EventReminderDialog from "@/components/clubs/EventReminderDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -152,7 +152,12 @@ const ClubProfile = () => {
         
         console.log('ClubProfile: Filtered club events:', clubEvents.length);
         setEvents(clubEvents);
-        setBoardMembers(Array.isArray(boardMembersResult) ? boardMembersResult : []);
+        setBoardMembers(Array.isArray(boardMembersResult) ? boardMembersResult.map((member) => ({
+          ...member,
+          photo_url: member.photo_url && !member.photo_url.startsWith('http')
+            ? `${DJANGO_API_URL}${member.photo_url}`
+            : member.photo_url,
+        })) : []);
         setAchievements(Array.isArray(achievementsResult) ? achievementsResult : []);
       } catch (error) {
         console.error('Error fetching related data:', error);
@@ -341,7 +346,7 @@ const ClubProfile = () => {
           <CardHeader>
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               <Avatar className="w-24 h-24">
-                <AvatarImage src={club.logo || club.logo_url} alt={club.name} />
+                <AvatarImage src={club.logo_url || club.logo} alt={club.name} />
                 <AvatarFallback className="text-2xl">{club.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
@@ -473,30 +478,86 @@ const ClubProfile = () => {
           </TabsList>
 
           <TabsContent value="information">
-            <Card>
+            <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle>About Our Club</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">About Our Club</h3>
-                    <p className="text-muted-foreground">{club.description}</p>
+                <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+                  <div className="rounded-lg border bg-muted/30 p-5">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <Users className="h-4 w-4" />
+                      </div>
+                      <h3 className="text-lg font-semibold">Mission</h3>
+                    </div>
+                    <p className="leading-7 text-muted-foreground">
+                      {club.description || "No description available yet."}
+                    </p>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Contact Information</h3>
-                    <div className="space-y-2">
-                      {club.contact_email && (
-                        <p className="text-muted-foreground">Email: {club.contact_email}</p>
-                      )}
-                      {club.contact_phone && (
-                        <p className="text-muted-foreground">Phone: {club.contact_phone}</p>
-                      )}
-                      {club.website && (
-                        <p className="text-muted-foreground">
-                          Website: <a href={club.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary">{club.website}</a>
-                        </p>
-                      )}
+
+                  <div className="rounded-lg border p-5">
+                    <h3 className="mb-4 text-lg font-semibold">Club Details</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <Tag className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Category</p>
+                          <p className="text-sm capitalize text-muted-foreground">
+                            {club.club_type === 'other' ? club.custom_type : club.club_type || 'Not specified'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <Mail className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">Email</p>
+                          {club.contact_email ? (
+                            <a href={`mailto:${club.contact_email}`} className="break-words text-sm text-muted-foreground hover:text-primary">
+                              {club.contact_email}
+                            </a>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Not provided</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <Phone className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Phone</p>
+                          {club.contact_phone ? (
+                            <a href={`tel:${club.contact_phone}`} className="text-sm text-muted-foreground hover:text-primary">
+                              {club.contact_phone}
+                            </a>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Not provided</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <Globe className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">Website</p>
+                          {club.website ? (
+                            <a href={club.website} target="_blank" rel="noopener noreferrer" className="break-words text-sm text-muted-foreground hover:text-primary">
+                              {club.website}
+                            </a>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Not provided</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

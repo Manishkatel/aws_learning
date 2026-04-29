@@ -16,6 +16,7 @@ interface Club {
   name: string;
   description: string;
   logo?: string;
+  logo_url?: string;
   contact_email: string;
   contact_phone?: string;
   website?: string;
@@ -244,9 +245,9 @@ const Clubs = () => {
               <Card key={club.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-center space-x-3">
-                    {club.logo ? (
+                    {club.logo_url || club.logo ? (
                       <img 
-                        src={club.logo} 
+                        src={club.logo_url || club.logo} 
                         alt={club.name}
                         className="w-12 h-12 rounded-full object-cover"
                       />

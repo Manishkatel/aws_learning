@@ -7,9 +7,18 @@ import { Upload, User } from "lucide-react";
 interface ProfilePictureUploadProps {
   onImageChange: (file: File | null) => void;
   fullName: string;
+  initialImageUrl?: string | null;
+  label?: string;
+  buttonLabel?: string;
 }
 
-export const ProfilePictureUpload = ({ onImageChange, fullName }: ProfilePictureUploadProps) => {
+export const ProfilePictureUpload = ({
+  onImageChange,
+  fullName,
+  initialImageUrl,
+  label = "Profile Picture (Optional)",
+  buttonLabel = "Upload Profile Picture",
+}: ProfilePictureUploadProps) => {
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -50,10 +59,10 @@ export const ProfilePictureUpload = ({ onImageChange, fullName }: ProfilePicture
 
   return (
     <div className="space-y-4">
-      <Label>Profile Picture (Optional)</Label>
+      <Label>{label}</Label>
       <div className="flex flex-col items-center space-y-4">
         <Avatar className="w-24 h-24 cursor-pointer" onClick={handleClick}>
-          <AvatarImage src={preview || undefined} alt="Profile picture" />
+          <AvatarImage src={preview || initialImageUrl || undefined} alt="Profile picture" />
           <AvatarFallback className="text-lg bg-muted">
             {fullName ? getInitials(fullName) : <User className="w-8 h-8" />}
           </AvatarFallback>
@@ -66,7 +75,7 @@ export const ProfilePictureUpload = ({ onImageChange, fullName }: ProfilePicture
           className="w-full"
         >
           <Upload className="w-4 h-4 mr-2" />
-          Upload Profile Picture
+          {buttonLabel}
         </Button>
         
         <input

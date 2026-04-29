@@ -10,6 +10,7 @@ export interface Club {
   contact_phone?: string;
   website?: string;
   logo?: string;
+  logo_url?: string;
   owner_id: string;
   created_at: string;
   updated_at: string;
@@ -244,6 +245,17 @@ export async function updateBoardMember(id: string, data: Partial<CreateBoardMem
  */
 export async function removeBoardMember(id: string): Promise<void> {
   return apiDelete(API_ENDPOINTS.BOARD_MEMBER_DETAIL(id));
+}
+
+/**
+ * Upload board member photo
+ */
+export async function uploadBoardMemberPhoto(boardMemberId: string, file: File): Promise<{ photo_url: string }> {
+  return apiUploadFile<{ photo_url: string }>(
+    API_ENDPOINTS.BOARD_MEMBER_UPLOAD_PHOTO(boardMemberId),
+    file,
+    'photo'
+  );
 }
 
 // ==================== Achievements ====================

@@ -29,6 +29,7 @@ export const API_ENDPOINTS = {
   // Board Members
   BOARD_MEMBERS: '/api/clubs/board-members/',
   BOARD_MEMBER_DETAIL: (id: string) => `/api/clubs/board-members/${id}/`,
+  BOARD_MEMBER_UPLOAD_PHOTO: (id: string) => `/api/clubs/board-members/${id}/upload_photo/`,
   
   // Achievements
   ACHIEVEMENTS: '/api/clubs/achievements/',
